@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name='description' content='Browser implementation of one of the most popular game in the world'>
+        <meta name='copyright' content='Saqwel'>
+        <meta name='author' content='Saqwel, konstantin@saqwel.ru'>
+        <meta name='url' content='https://www.saqwel.ru'>
+        <meta name='date' content='Sep. 20, 2011'>
+        <meta name='revised' content='Friday, January 19th, 2018, 2:41 am'>
+
+        <title>Saqwel Tetris</title>
+		<script src="svg.js" data-path=""></script>
+  
+		<script type='text/javascript'>
+			var root     = null;
+			var width    = 1000,       // Width of playing field
+				height   = 2000;       // Height of playing field
+			var speed    = 100;        // One step distance
+			var interval = 500;        // Frequency of steps
+			var ntrvl    = interval;
+			var gameover = false;
+			var j        = 0;
+			var _y       = -1*speed;   // Y-coordinate of starting postition of moving item
+			var _x       = ( Math.floor( width/( 2*speed ) ) )*100;         // X-coordinate of starting
+																			// position of moving item
+			var next_x   = 1200;       // Next item demonstration position
+			var next_y   = 350;
+			var position = 0;          // Starting positioning of item
+			var rows     = 0;          // Number of rows which will be used for scores count
+			var p        = false;      // Pause variable
+			
+		//Можно массив объявлять как c = []; , но мне больше нравится new Array
+			var c16      = new Array('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
+			var c        = new Array();         // Color array
+			var newcolor = new Array('#990000','#009900','#000099')
+			var stat     = new Array();         // Array og object static items
+			var fig      = new Array(
+									[[[0,speed],[0,0],[0,-speed],[0,-2*speed]],[[-speed,0],[0,0],[speed,0],[2*speed,0]]],
+									[[[speed,0],[0,0],[0,-speed],[speed,-speed]]],
+									[[[0,0],[0,-speed],[0,-2*speed],[speed,0]],[[0,0],[speed,0],[2*speed,0],[0,speed]],[[0,0],[0,speed],[0,2*speed],[-speed,0]],[[0,0],[-speed,0],[-2*speed,0],[0,-speed]]],
+									[[[0,0],[0,-speed],[0,-2*speed],[-speed,0]],[[0,0],[speed,0],[2*speed,0],[0,-speed]],[[0,0],[0,speed],[0,2*speed],[speed,0]],[[0,0],[-speed,0],[-2*speed,0],[0,speed]]],
+									[[[speed,0],[0,0],[-speed,0],[0,-speed]],[[0,-speed],[0,0],[0,speed],[speed,0]],[[-speed,0],[0,0],[speed,0],[0,speed]],[[0,-speed],[0,0],[0,speed],[-speed,0]]],
+									[[[0,speed],[0,0],[speed,0],[speed,-speed]],[[speed,0],[0,0],[0,-speed],[-speed,-speed]]],
+									[[[0,speed],[0,0],[-speed,0],[-speed,-speed]],[[-speed,0],[0,0],[0,-speed],[speed,-speed]]]
+									); // Array of items
+			var cubic    = new Array();
+			var next_cubic = new Array();
+			var bottom   = new Array( _y+height,_y+height,_y+height,_y+height ); // Current bottom border
+			var row      = new Array(0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+			
+	
+			// Create object which creates cubes
+			function obj(a,b) {
+				this.x = a;
+				this.y = b;
+
+				this.el = document.createElementNS(svgns, 'rect');
+				this.el.setAttribute('x', this.x);
+				this.el.setAttribute('y', this.y);
+				this.el.setAttribute('width', 99);
+				this.el.setAttribute('height', 99);
+				this.el.setAttribute('fill', _c);
+			}
+			
+			
+			// Random color picker
+			function color() {
+				/*for( i=0; i<3; i++ ) {
+					num = Math.floor( Math.random()*255 );
+					num = num/16;
+					celoe = Math.floor(num);
+					drob  = (num-celoe)*16;
+					c[i] = c16[celoe]+c16[drob];
+				}
+				
+				return '#'+c[0]+c[1]+c[2];*/
+				return newcolor[Math.floor( Math.random()*3 )];
+			}
+			
+			function change_x() {
+				cubic[0].el.setAttribute('x', cubic[0].x);
+				cubic[1].el.setAttribute('x', cubic[1].x);
+				cubic[2].el.setAttribute('x', cubic[2].x);
+				cubic[3].el.setAttribute('x', cubic[3].x);
+			}
+			
+			function change_y() {
+				cubic[0].el.setAttribute('y', cubic[0].y);
+				cubic[1].el.setAttribute('y', cubic[1].y);
+				cubic[2].el.setAttribute('y', cubic[2].y);
+				cubic[3].el.setAttribute('y', cubic[3].y);
+			}
+			
+			function move_y() {
+				move_y_fig = true;
+				
+				// If next level of playing field is not empty stop moving
+				for( var i in stat ) {
+					if( ( cubic[0].x==stat[i].x && cubic[0].y==stat[i].y-speed ) ||
+						( cubic[1].x==stat[i].x && cubic[1].y==stat[i].y-speed ) ||
+						( cubic[2].x==stat[i].x && cubic[2].y==stat[i].y-speed ) ||
+						( cubic[3].x==stat[i].x && cubic[3].y==stat[i].y-speed ) ) {
+						move_y_fig = false;
+						break;
+					}
+				}
+				
+				
+				// If item reaches bottom of playing ground of another item
+				if( move_y_fig ) {
+					cubic[0].y += speed;
+					cubic[1].y += speed;
+					cubic[2].y += speed;
+					cubic[3].y += speed;
+					change_y();
+				} else {
+					root.suspendRedraw(10000);
+					j++;
+					stat[j] = new obj(cubic[0].x,cubic[0].y);
+					root.appendChild(stat[j].el);
+					j++;
+					stat[j] = new obj(cubic[1].x,cubic[1].y);
+					root.appendChild(stat[j].el);
+					j++;
+					stat[j] = new obj(cubic[2].x,cubic[2].y);
+					root.appendChild(stat[j].el);
+					j++;
+					stat[j] = new obj(cubic[3].x,cubic[3].y);
+					root.appendChild(stat[j].el);
+					root.unsuspendRedrawAll();
+					position = 0;
+					_c = next_c;
+					figure = next_figure;
+					for( i=0; i<4; i++ ) {
+						cubic[i].x =_x + fig[figure][position][i][0];
+						cubic[i].y =_y + fig[figure][position][i][1];
+					}
+					change_x();
+					change_y();
+					cubic[0].el.setAttribute('fill', _c);
+					cubic[1].el.setAttribute('fill', _c);
+					cubic[2].el.setAttribute('fill', _c);
+					cubic[3].el.setAttribute('fill', _c);
+					if( stat[j].y<100 ) gameover = true;
+					ntrvl = interval;
+					
+					
+					
+					// Erase row and move cubes below
+					for( m=0; m<height/100; m++ ) {
+						for( var i in stat ) {
+							if( stat[i].y==m*speed ) row[m]++;
+						}
+						if( row[m]==10 ) {
+							rows ++;
+							for(  var i in stat ) {
+								if( stat[i].y==m*speed ) {
+									root.removeChild(stat[i].el);
+									delete stat[i];
+								}
+							}
+						
+							for(  var i in stat ) {
+								if( stat[i].y<m*speed ) {
+									stat[i].y += speed;
+									stat[i].el.setAttribute( 'y', stat[i].y );
+								}
+							}
+						
+						}
+					}
+					for( m=(height/100)-1; m>0; m-- ) {	row[m] = 0; }
+					if( rows == 0 ) scr++;
+					if( rows == 1 ) scr += 10;
+					if( rows == 2 ) scr += 25;
+					if( rows == 3 ) scr += 50;
+					if( rows == 4 ) scr += 100;
+					if( scr > 500  ) interval = 450;
+					if( scr > 1000 ) interval = 400;
+					if( scr > 1500 ) interval = 350;
+					if( scr > 2000 ) interval = 300;
+					if( scr > 2500 ) interval = 250;
+					if( scr > 3000 ) interval = 200;
+					if( scr > 3500 ) interval = 150;
+					if( scr > 4000 ) interval = 100;
+					rows = 0;
+					
+					// Generate next item
+					next_c = color();
+					next_figure = Math.floor( Math.random()*fig.length );
+					for( i=0; i<4; i++ ) {
+						next_cubic[i].x =next_x + fig[next_figure][position][i][0];
+						next_cubic[i].y =next_y + fig[next_figure][position][i][1];
+						next_cubic[i].el.setAttribute( 'x', next_cubic[i].x );
+						next_cubic[i].el.setAttribute( 'y', next_cubic[i].y );
+						next_cubic[i].el.setAttribute( 'fill', next_c );
+					}
+					text3.firstChild.nodeValue = scr;
+				}
+				
+				if( !gameover ) t = setTimeout( "move_y()", ntrvl );
+			}
+			
+			function move_x( n ) {
+				move_x_fig = false;
+				if( cubic[0].x!=0 && cubic[1].x!=0 && cubic[2].x!=0 && cubic[3].x!=0 && n!=1 ) {
+					move_x_fig = true;
+				}
+				if( cubic[0].x!=width-100 && cubic[1].x!=width-100 && cubic[2].x!=width-100 && cubic[3].x!=width-100 && n!=-1 ) {
+					move_x_fig = true;
+				}
+				// Check free space on left and right sides of item
+				for( var i in stat ) {
+					if( ( cubic[0].y==stat[i].y && cubic[0].x+n*speed==stat[i].x ) ||
+						( cubic[1].y==stat[i].y && cubic[1].x+n*speed==stat[i].x ) ||
+						( cubic[2].y==stat[i].y && cubic[2].x+n*speed==stat[i].x ) ||
+						( cubic[3].y==stat[i].y && cubic[3].x+n*speed==stat[i].x ) ){
+						
+							move_x_fig = false;
+							break;
+						
+					}
+				}
+				if( p ) move_x_fig = false;
+				if( move_x_fig ) {
+					cubic[0].x += n * speed;
+					cubic[1].x += n * speed;
+					cubic[2].x += n * speed;
+					cubic[3].x += n * speed;
+				}
+				change_x();
+			}
+			
+			
+			// Item rotation
+			new_x = [];
+			new_y = [];
+			function change_pos() {
+				if( position<fig[figure].length-1 ) position++; else position = 0;
+				change_pos_fig = true;
+				x_0 = cubic[1].x;
+				y_0 = cubic[1].y;
+				
+				for( i=0; i<4; i++ ) {
+					new_x[i] = x_0 + fig[figure][position][i][0];
+					new_y[i] = y_0 + fig[figure][position][i][1];
+				}
+				
+				for( var i in stat ) {
+					if( ( new_x[0]==stat[i].x && new_y[0]==stat[i].y ) ||
+						( new_x[1]==stat[i].x && new_y[1]==stat[i].y ) ||
+						( new_x[2]==stat[i].x && new_y[2]==stat[i].y ) ||
+						( new_x[3]==stat[i].x && new_y[3]==stat[i].y ) ) {
+						change_pos_fig = false;
+						break;
+					}
+				}
+				
+				if( new_x[0]<0 || new_x[1]<0 || new_x[2]<0 || new_x[3]<0 ) {
+					change_pos_fig = false;
+				}
+				if( new_x[0]>900 || new_x[1]>900 || new_x[2]>900 || new_x[3]>900 ) {
+					change_pos_fig = false;
+				}
+				
+				if( p ) change_pos_fig = false;
+				if( change_pos_fig ) {
+					for( i=0; i<4; i++ ) {
+						cubic[i].x = new_x[i];
+						cubic[i].y = new_y[i];
+					}
+					change_x();
+					change_y();
+				}
+			}
+			
+			
+			// Game pause
+			function move_pause() {
+				if( p ) {
+					p = false;
+					move_y();
+				} else {
+					p = true;
+					clearTimeout( t );
+				}
+			}
+			
+			
+			// Create SVG and object (items)
+			function startetris() {
+				starter = document.getElementById("starter");
+				document.getElementsByTagName('body')[0].removeChild(starter);
+			
+				var div = document.createElement('div');
+				div.style.textAlign = 'center';
+				div.style.verticalAlign = 'middle';
+				document.body.appendChild(div);
+				
+				// Playing ground
+				glass = document.createElementNS(svgns, 'rect');
+				glass.setAttribute('x', 1);
+				glass.setAttribute('y', 1);
+				glass.setAttribute('width', width-2);
+				glass.setAttribute('height', height-2);
+				glass.setAttribute('fill', "#EEE");
+				glass.setAttribute('stroke', "#666");
+				glass.setAttribute('stroke-width', 1);
+				
+				// Text
+				text1 = document.createElementNS(svgns, 'text');
+				text1.setAttribute('x', width+50);
+				text1.setAttribute('y', 100);
+				text1.setAttribute('font-size', 70);
+				text1.setAttribute('font-family', 'Verdana');
+				
+				next = document.createTextNode( 'Next' );
+				
+				// Text 
+				text2 = document.createElementNS(svgns, 'text');
+				text2.setAttribute('x', width+50);
+				text2.setAttribute('y', 700);
+				text2.setAttribute('font-size', 70);
+				text2.setAttribute('font-family', 'Verdana');
+				
+				scores = document.createTextNode( 'Scores' );
+				
+								
+				// Text 
+				text3 = document.createElementNS(svgns, 'text');
+				text3.setAttribute('x', width+50);
+				text3.setAttribute('y', 800);
+				text3.setAttribute('font-size', 70);
+				text3.setAttribute('font-family', 'Verdana');
+				text3.setAttribute('fill', '#99CC66');
+				
+				scr = 0;
+				score = document.createTextNode(scr);
+
+				
+				
+				root = document.createElementNS(svgns, 'svg');
+				root.setAttribute('width', '600');
+				root.setAttribute('height', '600');
+				root.setAttribute('viewBox', '0 0 ' + (width + 500 ) + ' ' + height);
+				root.addEventListener('SVGLoad', function(evt) {
+					root = this;
+					root.suspendRedraw(10000);
+					root.appendChild(glass);
+					root.appendChild(text1);
+					root.appendChild(text2);
+					root.appendChild(text3);
+					text1.appendChild(next);
+					text2.appendChild(scores);
+					text3.appendChild(score);
+					
+					// Moving cubes
+					figure = Math.floor( Math.random()*fig.length );
+					// Color of moving item which will be inherited by static cubes
+					_c = color();
+					for( i=0; i<4; i++ ) {
+						cubic[i] = new obj(_x+fig[figure][position][i][0],_y+fig[figure][position][i][1]);
+						root.appendChild(cubic[i].el);
+					}
+					
+					next_c = color();
+					next_figure = Math.floor( Math.random()*fig.length );
+					// Next item
+					for( i=0; i<4; i++ ) {
+						next_cubic[i] = new obj(next_x+fig[next_figure][position][i][0],next_y+fig[next_figure][position][i][1]);
+						root.appendChild(next_cubic[i].el);
+						next_cubic[i].el.setAttribute( 'fill', next_c );
+					}
+					// Bottom border
+					for( i=0; i<10; i++ ) {
+						stat[i] = new obj(i*speed,height);
+						stat[i].el.setAttribute( "fill", "" );
+						root.appendChild(stat[j].el);
+					}
+					j = i;
+					root.unsuspendRedrawAll();
+					move_y();
+				}, false);
+				svgweb.appendChild(root, div);
+			}
+			
+			document.onkeydown = function(e) {
+				e = e || window.event;
+				if( e.keyCode==37 || e.keyCode==65) move_x(-1);
+				if( e.keyCode==39 || e.keyCode==68) move_x(1);
+				if( e.keyCode==40 || e.keyCode==83) if( !p ) ntrvl = 50;
+				if( e.keyCode==38 || e.keyCode==87 ) change_pos();
+				if( e.keyCode==32 || e.keyCode==80) move_pause();
+				if( e.keyCode==13) startetris();
+			}
+    	</script>
+		<style>
+            #starter div {
+                font: 14px Verdana;
+                text-align: left;
+                width: 200px;
+            }
+            header {
+                text-align: center;
+            }
+            footer {
+                text-align: right;
+            }
+		</style>
+
+	</head>
+	<body>
+	<center id="starter">
+		<div>
+		    <header><a href="javascript:;" onclick="startetris();">Start</a></header>
+			<p> <strong>Keys:</strong>
+			<p>Up (W) - up
+			<p>Left (A) - left
+			<p>Right (D) - right
+			<p>Down (S) - faster
+			<p>Space - pause the game
+			<p>Enter - start the game
+            <footer><a href="http://www.saqwel.ru/" target="_blank">saqwel.ru</a></footer>
+        </div>
+	</center>
+	</body>
+</html>
