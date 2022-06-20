@@ -23,6 +23,7 @@ steps:
     echo "Copy"
     yes | cp -rf s/* tetris
     cd tetris
+    ls -l
     echo "Push"
     git push
   displayName: 'Clone repository'
