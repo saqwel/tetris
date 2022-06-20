@@ -23,6 +23,8 @@ steps:
     cat tetris/.git/config
     cd tetris
     echo "Push"
+    git config --global user.name "Konstantin Kostin"
+    git config --global user.email "konstantin_kostin@epam.com"
     git add -A
     git commit -m 'Automatic update'
     git push
