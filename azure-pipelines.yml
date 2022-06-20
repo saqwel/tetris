@@ -17,7 +17,7 @@ steps:
     cd ..
     mkdir saqwel
     cd saqwel
-    git clone https://$(GITHUB_REPOSITORY_USERNAME):$(GITHUB_REPOSITORY_PASSWORD)github.com/saqwel/tetris.git
+    git clone https://$(GITHUB_REPOSITORY_USERNAME):$(GITHUB_REPOSITORY_PASSWORD)@github.com/saqwel/tetris.git
     ls -la
     echo "Clone"
     cd ..
