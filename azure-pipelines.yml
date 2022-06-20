@@ -15,7 +15,12 @@ variables:
 steps:
 - script: |
     cd ..
+    mkdir saqwel
+    cd saqwel
+    git clone https://$(GITHUB_REPOSITORY_USERNAME):$(GITHUB_REPOSITORY_PASSWORD)github.com/saqwel/tetris.git
+    ls -la
     echo "Clone"
+    cd ..
     git clone https://$(AZURE_REPOSITORY_USERNAME):$(AZURE_REPOSITORY_PASSWORD)@dev.azure.com/KonstantinKostin/ADOLab/_git/tetris
     cat tetris/.git/config
     echo "Copy"
