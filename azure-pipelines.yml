@@ -10,11 +10,13 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: ls -l
-  displayName: 'Get content'
-
 - script: |
+    ls -l
     cd ..
     ls -l
-    git clone https://KonstantinKostin@dev.azure.com/KonstantinKostin/ADOLab/_git/tetris
+    git clone https://$(AZURE_REPOSITORY_USERNAME):$(AZURE_REPOSITORY_PASSWORD)@dev.azure.com/KonstantinKostin/ADOLab/_git/tetris
+    ls -l
+    yes | cp -rf s/* tetris
+    cd tetris
+    git push
   displayName: 'Clone repository'
