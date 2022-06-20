@@ -21,7 +21,8 @@ steps:
     git clone https://$(AZURE_REPOSITORY_USERNAME):$(AZURE_REPOSITORY_PASSWORD)@dev.azure.com/KonstantinKostin/ADOLab/_git/tetris
     ls -l
     echo "Copy"
-    yes | cp -rf s/* tetris
+    rsync -av --progress s tetris --exclude .git
+    #yes | cp -rf s/* tetris
     cd tetris
     ls -l
     echo "Push"
