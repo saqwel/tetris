@@ -14,18 +14,18 @@ variables:
 
 steps:
 - script: |
-    ls -l
+    ls -la
     cd ..
-    ls -l
+    ls -la
     echo "Clone"
     git clone https://$(AZURE_REPOSITORY_USERNAME):$(AZURE_REPOSITORY_PASSWORD)@dev.azure.com/KonstantinKostin/ADOLab/_git/tetris
-    ls -l tetris
+    ls -la tetris
     echo "Copy"
     rsync -av --progress s/* tetris --exclude .git --checksum
     #yes | cp -rf s/* tetris
     cd tetris
-    ls -l
-    tree
+    ls -la
+    tree -a
     echo "Push"
     git push
   displayName: 'Clone repository'
